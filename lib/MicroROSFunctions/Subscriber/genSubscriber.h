@@ -17,6 +17,7 @@ class genSubscriber{
 public:
     genSubscriber();
     void init(rcl_node_t * node, const char * topic, rclc_executor_t * executor, rclc_subscription_callback_t callback, DataType datatype);
+    void destroy(rcl_node_t * node);
     
 private:
     rcl_subscription_t subscriber;

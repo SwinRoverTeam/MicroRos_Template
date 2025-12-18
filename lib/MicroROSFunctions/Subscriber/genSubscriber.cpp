@@ -53,3 +53,7 @@ void genSubscriber::init(rcl_node_t * node, const char * topic, rclc_executor_t 
     
 }
 
+void genSubscriber::destroy(rcl_node_t * node) {
+    rcl_subscription_fini(&subscriber, node);
+}
+

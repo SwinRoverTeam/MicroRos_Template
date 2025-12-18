@@ -25,6 +25,7 @@ public:
     void publish(bool data);
     void publish(double data);
     void publish(const char* text);
+    void destroy(rcl_node_t * node);
 
 private:
     rcl_publisher_t publisher;

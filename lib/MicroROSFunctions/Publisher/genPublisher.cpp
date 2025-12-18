@@ -119,3 +119,7 @@ void genPublisher::publish(const char* text) {
         //some error handling
     }
 }
+
+void genPublisher::destroy(rcl_node_t * node) {
+    rcl_publisher_fini(&publisher, node);
+}
