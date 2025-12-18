@@ -25,10 +25,7 @@ IPAddress agent_ip(192, 168, 0, 80);                        // IP address of Mic
 size_t agent_port = 8888;                                   // Micro ROS Agent Port Number
 
 // Define Functions
-void error_loop();
-void SetupSupport();                                                                          // Creates allocator and support for namespace. Only one support should be made per namespace
-void initNode(rcl_node_t * node, const char * node_name);                                     // pass node and name objects     
-void initExecutor();                                                                          // inititates executor
+void error_loop();                                                                            
 void HandleConnectionState();
 bool CreateEntities();
 void DestroyEntities();
@@ -65,8 +62,6 @@ enum class ConnectionState {
 };
 
 ConnectionState connection_state = ConnectionState::kInitializing;
-
-
 
 void setup() {
 
@@ -123,8 +118,7 @@ void HandleConnectionState() {
         connection_state = ConnectionState::kDisconnected;
       } else {
         Serial.println("heartbeat");
-        pub_str1.publish("Hello World");
-        pub_str2.publish("ROS2");
+              // Publish to diagnostics topic
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
       }
       break;
@@ -142,9 +136,12 @@ void HandleConnectionState() {
 
 bool CreateEntities() {
 
-  SetupSupport();
-  initNode(&node, node_name);
-  initExecutor();
+  allocator = rcl_get_default_allocator();
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+  // Create node object
+  RCCHECK(rclc_node_init_default(&node, node_name, "", &support));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscibers the executor handles is hard coded atm
   
   // ADD ALL YOUR PUBLISHERS AND SUBSCRIBER INITIALISATION HERE
   pub_str1.init(&node, "StringPubA", STRING);
@@ -167,28 +164,12 @@ void DestroyEntities() {
     rclc_support_fini(&support);
 }
 
-void SetupSupport(){
-  allocator = rcl_get_default_allocator();
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-}
-
-
-void initNode(rcl_node_t * node, const char * node_name){
-  // Create node object
-  RCCHECK(rclc_node_init_default(node, node_name, "", &support));
-}
-
-void initExecutor(){
-  RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscibers the executor handles is hard coded atm
-}
-
 // Error handle loop
 void error_loop() {
 
   ESP.restart();
 
 };
-
 
 // ========================================= CALLBACK FUNCTIONS ========================================= //
 // Create your callback functions here.
