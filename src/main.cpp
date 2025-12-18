@@ -74,7 +74,7 @@ void setup() {
   Ethernet.init(W5500_CS);
 
   // Start Micro ROS Transport Connection
-  set_microros_eth_transports(esp_mac, esp_ip, agent_ip, agent_port);
+  set_microros_eth_transports(esp_mac, esp_ip, dns, gateway, agent_ip, agent_port);
 
   delay(2000);
 
