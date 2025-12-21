@@ -18,7 +18,7 @@
 
 // Network Configuration
 byte esp_mac[] = { 0xDE, 0xAD, 0xAF, 0x91, 0x3E, 0x69 };    // Mac address of ESP32
-IPAddress esp_ip(192, 168, 0, 14);                         // IP address of ESP32
+IPAddress esp_ip(192, 168, 0, 12);                         // IP address of ESP32
 IPAddress dns(192, 168, 0, 1);                              // DNS Server (Modify if necessary)
 IPAddress gateway(192, 168, 0, 1);                          // Default Gateway (Modify if necessary)
 IPAddress agent_ip(192, 168, 0, 80);                        // IP address of Micro ROS agent        
@@ -31,6 +31,7 @@ bool CreateEntities();
 void DestroyEntities();
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}     // Checks for Errors in Micro ROS Setup
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
+#define ARRAY_LEN(arr) { (sizeof(arr) / sizeof(arr[0])) }
 
 // Define shared ROS entities
 EthernetUDP udp;
@@ -40,17 +41,34 @@ rclc_executor_t executor;
 rcl_node_t node;
 rmw_context_t* rmw_context;
 
+int32_t * data;
+size_t size;
+size_t capacity;
+
 // MICRO ROS MODIFICATION 
-const char * node_name = "node1";
+const char * node_name = "nodeSub";
 
 // Define MicroROS Subscriber and Publisher entities
 genPublisher pub_str1;
 genPublisher pub_str2;
 
+genPublisher pub_arr1;
+genPublisher pub_arr2;
+
+genSubscriber sub_arr1;
+genSubscriber sub_arr2;
+
+// Define variables for the publisher to send values
+int arr1[] = {1, 2, 3, 4, 5};
+int arr2[] = {2, 4, 6, 8, 10};
+
+
+
 // Define Callback functions for the Subscribers
 void BooleanCallback(const void * msgin);
 void Int32Callback(const void * msgin);
 void DoubleCallback(const void * msgin);
+void Int32ArrayCallback(const void * msgin);
 
 // Connection management
 enum class ConnectionState {
@@ -70,19 +88,14 @@ void setup() {
   Serial.println("Starting Ethernet Connection... ");
 
 
-  // Initialize SPI with custom pin configuration
-  SPI.begin(W5500_SCK, W5500_MISO, W5500_MOSI, W5500_CS);
-
-
-  // Select CS PIN and initialize Ethernet with static IP settings (Selecting CS PIN required for ESP32 as the ardiuno default is different)
-  Ethernet.init(W5500_CS);
+  SPI.begin(W5500_SCK, W5500_MISO, W5500_MOSI, W5500_CS);                                   // Initialize SPI with custom pin configuration    
+  Ethernet.init(W5500_CS);                                                                  // Select CS PIN and initialize Ethernet chip
 
   Serial.println("[INIT] Starting micro-ROS node...");
-
-  // Start Micro ROS Transport Connection
-  set_microros_eth_transports(esp_mac, esp_ip, dns, gateway, agent_ip, agent_port);
+  set_microros_eth_transports(esp_mac, esp_ip, dns, gateway, agent_ip, agent_port);         // Start Micro ROS Transport Connection
 
   delay(2000);
+
   connection_state = ConnectionState::kWaitingForAgent;
 
 };
@@ -118,7 +131,15 @@ void HandleConnectionState() {
         connection_state = ConnectionState::kDisconnected;
       } else {
         Serial.println("heartbeat");
-              // Publish to diagnostics topic
+        
+        // Publish to diagnostics topic
+        pub_str1.publish("Hello World!");
+        pub_str2.publish("ROS2");
+
+        pub_arr1.publish(arr1, ARRAY_LEN(arr1));
+        pub_arr2.publish(arr2, ARRAY_LEN(arr2));
+        
+
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
       }
       break;
@@ -146,6 +167,12 @@ bool CreateEntities() {
   // ADD ALL YOUR PUBLISHERS AND SUBSCRIBER INITIALISATION HERE
   pub_str1.init(&node, "StringPubA", STRING);
   pub_str2.init(&node, "StringPubB", STRING);
+
+  // pub_arr1.init(&node, "Int32ArrayPubA", INT32_ARRAY);
+  // pub_arr2.init(&node, "Int32ArrayPubB", INT32_ARRAY);
+
+  sub_arr1.init(&node, "Int32ArrayPubA", &executor, Int32ArrayCallback, INT32_ARRAY);
+  sub_arr2.init(&node, "Int32ArrayPubB", &executor, Int32ArrayCallback, INT32_ARRAY);
   
   return true;
 }
@@ -155,8 +182,10 @@ void DestroyEntities() {
     (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
     
     // ADD FUNCTION THAT DESTROYS PUBLISHER AND SUBSCRIBER HERE
-    pub_str1.destroy(&node);
-    pub_str2.destroy(&node);
+    // pub_str1.destroy(&node);
+    // pub_str2.destroy(&node);
+    // sub_arr1.destroy(&node);
+    // sub_arr1.destroy(&node);
 
 
     rclc_executor_fini(&executor);
@@ -166,8 +195,9 @@ void DestroyEntities() {
 
 // Error handle loop
 void error_loop() {
-
-  ESP.restart();
+  Serial.println("An error has occured. Restarting...");
+  delay(2000);
+  // ESP.restart();
 
 };
 
@@ -203,4 +233,26 @@ void DoubleCallback(const void * msgin) {
   // Enter code here for when the subscriber receives a message.
   Serial.print("Double value: ");
   Serial.println(msg_double->data);
+}
+
+// Example Callback funtion for Int32 Array values
+void Int32ArrayCallback(const void * msgin) {
+
+    const std_msgs__msg__Int32MultiArray * msgArr = (const std_msgs__msg__Int32MultiArray *)msgin;
+
+    // Access the data array
+    size_t size = msgArr->data.size;
+    
+    const int32_t * array_data = msgArr->data.data;
+
+    Serial.print("Array size: ");
+    Serial.println(size);
+    for(size_t i = 0; i < size; i++)
+    {
+        Serial.print("Element ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(array_data[i]);
+    }
+
 }

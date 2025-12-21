@@ -1,5 +1,9 @@
 #include "genSubscriber.h"
 #include "datatype.h"
+#include <std_msgs/msg/int32_multi_array.h>
+
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){} else{} }
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){} }
 
 genSubscriber::genSubscriber(){}
 
@@ -44,6 +48,24 @@ void genSubscriber::init(rcl_node_t * node, const char * topic, rclc_executor_t 
 
         break;
 
+        case INT32_ARRAY:
+            
+
+            rclc_subscription_init_default(
+                &subscriber,
+                node,
+                ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+                topic_name
+            );
+
+            rclc_executor_add_subscription(executor, &subscriber, &msg.arrmsg, callback, ON_NEW_DATA);
+
+              msg.arrmsg.data.data = (int32_t *) malloc(50 * sizeof(int32_t));
+              msg.arrmsg.data.capacity = 50;
+              msg.arrmsg.data.size = 0;
+
+        break;
+
 
         default:
             Serial.println("ERROR: Subscriber initialisation has failed!");
@@ -54,6 +76,6 @@ void genSubscriber::init(rcl_node_t * node, const char * topic, rclc_executor_t 
 }
 
 void genSubscriber::destroy(rcl_node_t * node) {
-    rcl_subscription_fini(&subscriber, node);
+    RCCHECK(rcl_subscription_fini(&subscriber, node));
 }
 

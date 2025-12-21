@@ -5,13 +5,15 @@ enum DataType {
     INT,
     DOUBLE,
     BOOL,
-    STRING
+    STRING,
+    INT32_ARRAY
 };
 
 union DataMsg {
     std_msgs__msg__Int32 intmsg;
     std_msgs__msg__Float64 doublemsg;
     std_msgs__msg__Bool boolmsg;
+    std_msgs__msg__Int32MultiArray arrmsg;
 
 };
 

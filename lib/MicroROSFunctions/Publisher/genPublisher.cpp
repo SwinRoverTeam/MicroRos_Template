@@ -1,6 +1,6 @@
 #include "genPublisher.h"
 #include "datatype.h"
-#include <std_msgs/msg/string.h>
+
 
 
 genPublisher::genPublisher(){}
@@ -58,6 +58,16 @@ void genPublisher::init(rcl_node_t * node, const char * topic, DataType datatype
             );
         break;
 
+        case DataType::INT32_ARRAY:
+            rclc_publisher_init_default(
+                &publisher,
+                node,
+                ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+                topic_name
+               
+            );
+        break;
+
         default:
             while (1)
             {
@@ -70,11 +80,12 @@ void genPublisher::init(rcl_node_t * node, const char * topic, DataType datatype
 };
 
 
-void genPublisher::publish(int data) {
+void genPublisher::publish(int32_t data) {
     if(data_type == INT){
         std_msgs__msg__Int32 msg_int;
         msg_int.data = data;  // Assign to the message
         RCCHECK(rcl_publish(&publisher, &msg_int, NULL));
+
     } else {
         //some error handling
     }
@@ -104,16 +115,42 @@ void genPublisher::publish(double data) {
 
 void genPublisher::publish(const char* text) {
     if(data_type == STRING) {
-        std_msgs__msg__String msg;
+        std_msgs__msg__String msg_str;
 
-        msg.data.capacity = 200;
-        msg.data.data = (char*) malloc(msg.data.capacity * sizeof(char));
-        msg.data.size = 0;
+        size_t len = strlen(text);
+        
 
-        sprintf(msg.data.data, text);
-		msg.data.size = strlen(msg.data.data);
+        msg_str.data.capacity = len + 1;
+        msg_str.data.size = len;
+        msg_str.data.data = (char*) malloc(msg_str.data.capacity * sizeof(char));
 
-        RCCHECK(rcl_publish(&publisher, &msg, NULL));
+        memcpy(msg_str.data.data, text, msg_str.data.capacity); // includes '\0'
+
+        RCCHECK(rcl_publish(&publisher, &msg_str, NULL));
+
+    } else {
+        //some error handling
+    }
+}
+
+
+void genPublisher::publish(int32_t arr[], int arrLen) {
+    if (data_type == INT32_ARRAY) {
+        std_msgs__msg__Int32MultiArray msgArr;
+
+        msgArr.data.capacity = arrLen;
+        msgArr.data.size = arrLen;
+        msgArr.data.data = (int32_t *) malloc(arrLen * sizeof(int32_t));
+
+        msgArr.layout.dim.capacity = 0;
+        msgArr.layout.dim.size = 0;
+        msgArr.layout.dim.data = NULL;
+        msgArr.layout.data_offset = 0;
+
+        memcpy(msgArr.data.data, arr, arrLen * sizeof(int32_t));
+        
+        RCCHECK(rcl_publish(&publisher, &msgArr, NULL));
+        free(msgArr.data.data);
 
     } else {
         //some error handling
@@ -121,5 +158,5 @@ void genPublisher::publish(const char* text) {
 }
 
 void genPublisher::destroy(rcl_node_t * node) {
-    rcl_publisher_fini(&publisher, node);
+    RCCHECK(rcl_publisher_fini(&publisher, node));
 }
