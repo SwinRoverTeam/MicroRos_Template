@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <SPI.h>
-#include <MicroROS_Transport.h>
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include "Publisher/genPublisher.h"
-#include "Subscriber/genSubscriber.h"
+#include "Publisher/genPublisher.h"                     // Include this library to use the publisher      
+#include "Subscriber/genSubscriber.h"                   // Include this library to use the Subscriber
+#include <MicroROS_Transport.h>                         // IMPORTANT: MAKE SURE TO INCLUDE FOR CONNECTION BETWEEN THE ESP AND THE MICRO ROS AGENT TO WORK
 
 // Define W5500 Ethernet Chip Pins
 #define W5500_CS    14    // CS (Chip Select) PIN
@@ -17,12 +17,12 @@
 #define W5500_SCK   13    // Serial Clock PIN
 
 // Network Configuration
-byte esp_mac[] = { 0xDE, 0xAD, 0xAF, 0x91, 0x3E, 0x69 };    // Mac address of ESP32
-IPAddress esp_ip(192, 168, 0, 12);                         // IP address of ESP32
-IPAddress dns(192, 168, 0, 1);                              // DNS Server (Modify if necessary)
-IPAddress gateway(192, 168, 0, 1);                          // Default Gateway (Modify if necessary)
-IPAddress agent_ip(192, 168, 0, 80);                        // IP address of Micro ROS agent        
-size_t agent_port = 8888;                                   // Micro ROS Agent Port Number
+byte esp_mac[] = { 0xDE, 0xAD, 0xAF, 0x91, 0x3E, 0x69 };    // Mac address of ESP32 (Make sure its unique for each ESP32)
+IPAddress esp_ip(192, 168, 0, 12);                          // IP address of ESP32   (Make sure its unique for each ESP32)
+IPAddress dns(192, 168, 0, 1);                              // DNS Server           (Modify if necessary)
+IPAddress gateway(192, 168, 0, 1);                          // Default Gateway      (Modify if necessary)
+IPAddress agent_ip(192, 168, 0, 80);                        // IP address of Micro ROS agent   (Modify if necessary)        
+size_t agent_port = 8888;                                   // Micro ROS Agent Port Number     (Modify if necessary)
 
 // Define Functions
 void error_loop();                                                                            
@@ -30,38 +30,35 @@ void HandleConnectionState();
 bool CreateEntities();
 void DestroyEntities();
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}     // Checks for Errors in Micro ROS Setup
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
-#define ARRAY_LEN(arr) { (sizeof(arr) / sizeof(arr[0])) }
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}              // Checks for Errors in Micro ROS Setup
+#define ARRAY_LEN(arr) { (sizeof(arr) / sizeof(arr[0])) }                                     // Calculate the Array Length (Needed for the Int32 Array Publisher)
 
 // Define shared ROS entities
-EthernetUDP udp;
 rcl_allocator_t allocator;
 rclc_support_t support;
 rclc_executor_t executor;
 rcl_node_t node;
 rmw_context_t* rmw_context;
 
-int32_t * data;
-size_t size;
-size_t capacity;
+// Define Node Name
+const char * node_name = "nodeExample";
 
-// MICRO ROS MODIFICATION 
-const char * node_name = "nodeSub";
 
 // Define MicroROS Subscriber and Publisher entities
-genPublisher pub_str1;
-genPublisher pub_str2;
+genPublisher pub_int;                                   // Int32 Publisher
+genPublisher pub_double;                                // Double Publisher
+genPublisher pub_bool;                                  // Boolean Publisher
+genPublisher pub_arr;                                   // Int32 Array Publisher
+genPublisher pub_str;                                   // String Publisher
 
-genPublisher pub_arr1;
-genPublisher pub_arr2;
+genSubscriber sub_int;                                  // Integer Subscriber
+genSubscriber sub_double;                               // Double Subscriber
+genSubscriber sub_bool;                                 // Boolean Subscriber
+genSubscriber sub_arr;                                  // Int32 Array Publisher
 
-genSubscriber sub_arr1;
-genSubscriber sub_arr2;
 
 // Define variables for the publisher to send values
-int arr1[] = {1, 2, 3, 4, 5};
-int arr2[] = {2, 4, 6, 8, 10};
-
+int arr[] = {1, 2, 3, 4, 5};
 
 
 // Define Callback functions for the Subscribers
@@ -70,17 +67,20 @@ void Int32Callback(const void * msgin);
 void DoubleCallback(const void * msgin);
 void Int32ArrayCallback(const void * msgin);
 
-// Connection management
+
+// Connection status for the HandleConnection()
 enum class ConnectionState {
-  kInitializing,
-  kWaitingForAgent,
-  kConnecting,
-  kConnected,
-  kDisconnected
+  Initializing,
+  WaitingForAgent,
+  Connecting,
+  Connected,
+  Disconnected
 };
 
-ConnectionState connection_state = ConnectionState::kInitializing;
+ConnectionState connection_state = ConnectionState::Initializing;
 
+
+// Include the code for startinh up the ethernet chip and initialising the Micro ROS transport
 void setup() {
 
   Serial.begin(115200);
@@ -92,11 +92,11 @@ void setup() {
   Ethernet.init(W5500_CS);                                                                  // Select CS PIN and initialize Ethernet chip
 
   Serial.println("[INIT] Starting micro-ROS node...");
-  set_microros_eth_transports(esp_mac, esp_ip, dns, gateway, agent_ip, agent_port);         // Start Micro ROS Transport Connection
+  set_microros_eth_transports(esp_mac, esp_ip, dns, gateway, agent_ip, agent_port);         // IMPORTANT: Start Micro ROS Transport Connection 
 
   delay(2000);
 
-  connection_state = ConnectionState::kWaitingForAgent;
+  connection_state = ConnectionState::WaitingForAgent;
 
 };
 
@@ -106,48 +106,51 @@ void loop() {
 
 }
 
+// This function handles the connect between Micro ROS inside the ESP and the Micro ROS agent
 void HandleConnectionState() {
   switch (connection_state) {
-    case ConnectionState::kWaitingForAgent:
+    case ConnectionState::WaitingForAgent:
+      // Ping to the Micro ROS agent
       if (RMW_RET_OK == rmw_uros_ping_agent(200, 3)) {
         Serial.println("[ROS] Agent found, establishing connection...");
-        connection_state = ConnectionState::kConnecting;
+        connection_state = ConnectionState::Connecting;
       }
       break;
 
-    case ConnectionState::kConnecting:
+    case ConnectionState::Connecting:
+      // Create all micro ROS entities
       if (CreateEntities()) {
         Serial.println("[ROS] Connected and ready!");
-        connection_state = ConnectionState::kConnected;
+        connection_state = ConnectionState::Connected;
       } else {
         Serial.println("[ROS] Connection failed, retrying...");
-        connection_state = ConnectionState::kWaitingForAgent;
+        connection_state = ConnectionState::WaitingForAgent;
       }
       break;
 
-    case ConnectionState::kConnected:
+    case ConnectionState::Connected:
+    // If Micro ROS agent gets disconnected...
       if (RMW_RET_OK != rmw_uros_ping_agent(200, 3)) {
         Serial.println("[ROS] Agent disconnected!");
-        connection_state = ConnectionState::kDisconnected;
+        connection_state = ConnectionState::Disconnected;
       } else {
-        Serial.println("heartbeat");
+        Serial.println("heartbeat");                                                      // Use it for testing the code is working
         
-        // Publish to diagnostics topic
-        pub_str1.publish("Hello World!");
-        pub_str2.publish("ROS2");
+      // ADD HERE FOR PUBLISHING VALUES CONTINUOUSLY
+        pub_int.publish(8);
+        pub_bool.publish(true);
+        pub_double.publish(0.69);
+        pub_arr.publish(arr, ARRAY_LEN(arr));                                             // Note: ARRAY LENGTH MUST BE ADD FOR THE INT32 ARRAY PUBLISH FUNCTION TO WORK
+        pub_str.publish("Hello world");
 
-        pub_arr1.publish(arr1, ARRAY_LEN(arr1));
-        pub_arr2.publish(arr2, ARRAY_LEN(arr2));
-        
-
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));                            // Spins the executor (Important for Subscribers)
       }
       break;
 
-    case ConnectionState::kDisconnected:
+    case ConnectionState::Disconnected:
       DestroyEntities();
       Serial.println("[ROS] Waiting for agent...");
-      connection_state = ConnectionState::kWaitingForAgent;
+      connection_state = ConnectionState::WaitingForAgent;
       break;
 
     default:
@@ -155,6 +158,7 @@ void HandleConnectionState() {
   }
 }
 
+// This function creates/initialises all micro ros entites (Publishers, Subscribers, Executors, Nodes, Support...)
 bool CreateEntities() {
 
   allocator = rcl_get_default_allocator();
@@ -162,42 +166,52 @@ bool CreateEntities() {
 
   // Create node object
   RCCHECK(rclc_node_init_default(&node, node_name, "", &support));
-  RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscibers the executor handles is hard coded atm
+  RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscribers the executor handles is hard coded atm
   
   // ADD ALL YOUR PUBLISHERS AND SUBSCRIBER INITIALISATION HERE
-  pub_str1.init(&node, "StringPubA", STRING);
-  pub_str2.init(&node, "StringPubB", STRING);
+  pub_int.init(&node, "Int32Example", INT);                                                  // Initialise Int32 Publisher
+  pub_bool.init(&node, "BooleanExample", BOOL);                                              // Initialise Boolean Publisher
+  pub_double.init(&node, "DoubleExample", DOUBLE);                                           // Initialise Double Publisher
+  pub_arr.init(&node, "Int32ArrayExample", INT32_ARRAY);                                     // Initialise Int32 Array Publisher
+  pub_str.init(&node, "StringExample", STRING);                                              // Initialise String Publisher
 
-  // pub_arr1.init(&node, "Int32ArrayPubA", INT32_ARRAY);
-  // pub_arr2.init(&node, "Int32ArrayPubB", INT32_ARRAY);
+  sub_int.init(&node, "Int32Example", &executor, Int32Callback, INT);                        // Initialise Int32 Subscriber
+  sub_bool.init(&node, "BooleanExample", &executor, BooleanCallback, BOOL);                  // Initialise Boolean Subscriber
+  sub_double.init(&node, "DoubleExample", &executor, DoubleCallback, DOUBLE);                // Initialise Double Subscriber
+  sub_arr.init(&node, "Int32ArrayExample", &executor, DoubleCallback, INT32_ARRAY);          // Initialise Int32 Array Subscriber
 
-  sub_arr1.init(&node, "Int32ArrayPubA", &executor, Int32ArrayCallback, INT32_ARRAY);
-  sub_arr2.init(&node, "Int32ArrayPubB", &executor, Int32ArrayCallback, INT32_ARRAY);
-  
   return true;
 }
 
+
+
+// This function destroys all micro ros entites (Publishers, Subscribers, Executors, Nodes, Support...)
 void DestroyEntities() {
     rmw_context = rcl_context_get_rmw_context(&support.context);
     (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
     
     // ADD FUNCTION THAT DESTROYS PUBLISHER AND SUBSCRIBER HERE
-    // pub_str1.destroy(&node);
-    // pub_str2.destroy(&node);
-    // sub_arr1.destroy(&node);
-    // sub_arr1.destroy(&node);
+    pub_int.destroy(&node);                                     // Destroy Int32 Publisher
+    pub_bool.destroy(&node);                                    // Destroy Boolean Publisher
+    pub_double.destroy(&node);                                  // Destroy Double Publisher
+    pub_arr.destroy(&node);                                     // Destroy Int32 Array Publisher
+    pub_str.destroy(&node);                                     // Destroy String Publisher
 
+    sub_int.destroy(&node);                                     // Destroy Int32 Subscriber
+    sub_bool.destroy(&node);                                    // Destroy Boolean Subscriber
+    sub_double.destroy(&node);                                  // Destroy Double Subscriber
+    sub_arr.destroy(&node);                                     // Destroy Int32 Array Subscriber
 
-    rclc_executor_fini(&executor);
-    RCCHECK(rcl_node_fini(&node));
-    rclc_support_fini(&support);
+    rclc_executor_fini(&executor);                              // Destroy Executors
+    RCCHECK(rcl_node_fini(&node));                              // Destroy Node
+    rclc_support_fini(&support);                                // Destroy Support
 }
 
 // Error handle loop
 void error_loop() {
   Serial.println("An error has occured. Restarting...");
   delay(2000);
-  // ESP.restart();
+  ESP.restart();
 
 };
 
@@ -238,7 +252,7 @@ void DoubleCallback(const void * msgin) {
 // Example Callback funtion for Int32 Array values
 void Int32ArrayCallback(const void * msgin) {
 
-    const std_msgs__msg__Int32MultiArray * msgArr = (const std_msgs__msg__Int32MultiArray *)msgin;
+    const std_msgs__msg__Int32MultiArray * msgArr = (const std_msgs__msg__Int32MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
 
     // Access the data array
     size_t size = msgArr->data.size;
