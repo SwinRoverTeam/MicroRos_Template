@@ -13,6 +13,7 @@
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/int32_multi_array.h>
+#include <std_msgs/msg/float64_multi_array.h>
 
 #include "datatype.h"
 
@@ -26,7 +27,9 @@ public:
     void publish(bool data);
     void publish(double data);
     void publish(const char* text);
-    void publish(int32_t arr[], int ArrLen);                                 // WIP: do not uncomment
+    void publish(int32_t arr[], int INTArrLen);
+    void publish(double arr[], int DBArrLen);
+
 
     void destroy(rcl_node_t * node);
 
@@ -38,4 +41,4 @@ private:
 
 };
 
-#endif // INT_PUBLISHER_H
+#endif // GEN_PUBLISHER_H

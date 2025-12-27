@@ -9,6 +9,7 @@
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float64.h>
 #include <std_msgs/msg/int32_multi_array.h>
+#include <std_msgs/msg/float64_multi_array.h>
 #include "datatype.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();} }

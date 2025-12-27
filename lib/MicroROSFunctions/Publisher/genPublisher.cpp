@@ -68,6 +68,16 @@ void genPublisher::init(rcl_node_t * node, const char * topic, DataType datatype
             );
         break;
 
+        case DataType::FLOAT64_ARRAY:
+            rclc_publisher_init_default(
+                &publisher,
+                node,
+                ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
+                topic_name
+               
+            );
+        break;
+
         default:
             while (1)
             {
@@ -80,7 +90,7 @@ void genPublisher::init(rcl_node_t * node, const char * topic, DataType datatype
 };
 
 
-void genPublisher::publish(int32_t data) {
+void genPublisher::publish(int data) {
     if(data_type == INT){
         std_msgs__msg__Int32 msg_int;
         msg_int.data = data;  // Assign to the message
@@ -134,23 +144,46 @@ void genPublisher::publish(const char* text) {
 }
 
 
-void genPublisher::publish(int32_t arr[], int arrLen) {
+void genPublisher::publish(int32_t arr[], int INTArrLen) {
     if (data_type == INT32_ARRAY) {
-        std_msgs__msg__Int32MultiArray msgArr;
+        std_msgs__msg__Int32MultiArray IntArr;
 
-        msgArr.data.capacity = arrLen;
-        msgArr.data.size = arrLen;
-        msgArr.data.data = (int32_t *) malloc(arrLen * sizeof(int32_t));
+        IntArr.data.capacity = INTArrLen + 1;
+        IntArr.data.size = INTArrLen;
+        IntArr.data.data = (int32_t *) malloc(INTArrLen * sizeof(int32_t));
 
-        msgArr.layout.dim.capacity = 0;
-        msgArr.layout.dim.size = 0;
-        msgArr.layout.dim.data = NULL;
-        msgArr.layout.data_offset = 0;
+        IntArr.layout.dim.capacity = 0;
+        IntArr.layout.dim.size = 0;
+        IntArr.layout.dim.data = NULL;
+        IntArr.layout.data_offset = 0;
 
-        memcpy(msgArr.data.data, arr, arrLen * sizeof(int32_t));
+        memcpy(IntArr.data.data, arr, INTArrLen * sizeof(int32_t));
         
-        RCCHECK(rcl_publish(&publisher, &msgArr, NULL));
-        free(msgArr.data.data);
+        RCCHECK(rcl_publish(&publisher, &IntArr, NULL));
+        // free(IntArr.data.data);                                          // Might remove it; 
+
+    } else {
+        //some error handling
+    }
+}
+
+void genPublisher::publish(double arr[], int DBArrLen) {
+    if (data_type == FLOAT64_ARRAY) {
+        std_msgs__msg__Float64MultiArray DoubleArr;
+
+        DoubleArr.data.capacity = DBArrLen + 1;
+        DoubleArr.data.size = DBArrLen;
+        DoubleArr.data.data = (double *) malloc(DBArrLen * sizeof(double));
+
+        DoubleArr.layout.dim.capacity = 0;
+        DoubleArr.layout.dim.size = 0;
+        DoubleArr.layout.dim.data = NULL;
+        DoubleArr.layout.data_offset = 0;
+
+        memcpy(DoubleArr.data.data, arr, DBArrLen * sizeof(double));
+        
+        RCCHECK(rcl_publish(&publisher, &DoubleArr, NULL));
+        // free(msgArr.data.data);                                          // Might remove it
 
     } else {
         //some error handling
@@ -158,5 +191,8 @@ void genPublisher::publish(int32_t arr[], int arrLen) {
 }
 
 void genPublisher::destroy(rcl_node_t * node) {
+
+    // might add free() here instead...
+
     RCCHECK(rcl_publisher_fini(&publisher, node));
 }
