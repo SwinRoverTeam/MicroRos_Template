@@ -48,17 +48,20 @@ const char * node_name = "nodeExample";
 genPublisher pub_int;                                   // Int32 Publisher
 genPublisher pub_double;                                // Double Publisher
 genPublisher pub_bool;                                  // Boolean Publisher
-genPublisher pub_arr;                                   // Int32 Array Publisher
+genPublisher pub_INTarr;                                // Int32 Array Publisher
+genPublisher pub_DBarr;                                 // Float64 (double) Array Publisher
 genPublisher pub_str;                                   // String Publisher
 
 genSubscriber sub_int;                                  // Integer Subscriber
 genSubscriber sub_double;                               // Double Subscriber
 genSubscriber sub_bool;                                 // Boolean Subscriber
-genSubscriber sub_arr;                                  // Int32 Array Publisher
+genSubscriber sub_INTarr;                               // Int32 Array Subscriber
+genSubscriber sub_DBarr;                                // Float64 (double) Array Subscriber
 
 
 // Define variables for the publisher to send values
-int arr[] = {1, 2, 3, 4, 5};
+int INTarr[] = {1, 2, 3, 4, 5};
+double DBarr[] = {1.0, 1.5, 2.0, 2.5, 3.0};
 
 
 // Define Callback functions for the Subscribers
@@ -66,6 +69,7 @@ void BooleanCallback(const void * msgin);
 void Int32Callback(const void * msgin);
 void DoubleCallback(const void * msgin);
 void Int32ArrayCallback(const void * msgin);
+void Float64ArrayCallback(const void * msgin);
 
 
 // Connection status for the HandleConnection()
@@ -134,16 +138,17 @@ void HandleConnectionState() {
         Serial.println("[ROS] Agent disconnected!");
         connection_state = ConnectionState::Disconnected;
       } else {
-        Serial.println("heartbeat");                                                      // Use it for testing the code is working
+        Serial.println("heartbeat");                                                      // Use it for testing if the code is working
         
       // ADD HERE FOR PUBLISHING VALUES CONTINUOUSLY
         pub_int.publish(8);
         pub_bool.publish(true);
         pub_double.publish(0.69);
-        pub_arr.publish(arr, ARRAY_LEN(arr));                                             // Note: ARRAY LENGTH MUST BE ADD FOR THE INT32 ARRAY PUBLISH FUNCTION TO WORK
+        pub_INTarr.publish(INTarr, ARRAY_LEN(INTarr));                                          // Note: ARRAY LENGTH MUST BE ADD FOR THE INT32 ARRAY PUBLISH FUNCTION TO WORK
+        pub_DBarr.publish(DBarr, ARRAY_LEN(DBarr));                                             // Note: ARRAY LENGTH MUST BE ADD FOR THE FLOAT64 ARRAY PUBLISH FUNCTION TO WORK
         pub_str.publish("Hello world");
 
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));                            // Spins the executor (Important for Subscribers)
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));                                  // Spins the executor (Important for Subscribers)
       }
       break;
 
@@ -169,16 +174,18 @@ bool CreateEntities() {
   RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscribers the executor handles is hard coded atm
   
   // ADD ALL YOUR PUBLISHERS AND SUBSCRIBER INITIALISATION HERE
-  pub_int.init(&node, "Int32Example", INT);                                                  // Initialise Int32 Publisher
-  pub_bool.init(&node, "BooleanExample", BOOL);                                              // Initialise Boolean Publisher
-  pub_double.init(&node, "DoubleExample", DOUBLE);                                           // Initialise Double Publisher
-  pub_arr.init(&node, "Int32ArrayExample", INT32_ARRAY);                                     // Initialise Int32 Array Publisher
-  pub_str.init(&node, "StringExample", STRING);                                              // Initialise String Publisher
+  pub_int.init(&node, "Int32Example", INT);                                                           // Initialise Int32 Publisher
+  pub_bool.init(&node, "BooleanExample", BOOL);                                                       // Initialise Boolean Publisher
+  pub_double.init(&node, "DoubleExample", DOUBLE);                                                    // Initialise Double Publisher
+  pub_INTarr.init(&node, "Int32ArrayExample", INT32_ARRAY);                                           // Initialise Int32 Array Publisher
+  pub_DBarr.init(&node, "Float64ArrayExample", FLOAT64_ARRAY);                                        // Initialise Float64 Array Publisher
+  pub_str.init(&node, "StringExample", STRING);                                                       // Initialise String Publisher
 
-  sub_int.init(&node, "Int32Example", &executor, Int32Callback, INT);                        // Initialise Int32 Subscriber
-  sub_bool.init(&node, "BooleanExample", &executor, BooleanCallback, BOOL);                  // Initialise Boolean Subscriber
-  sub_double.init(&node, "DoubleExample", &executor, DoubleCallback, DOUBLE);                // Initialise Double Subscriber
-  sub_arr.init(&node, "Int32ArrayExample", &executor, DoubleCallback, INT32_ARRAY);          // Initialise Int32 Array Subscriber
+  sub_int.init(&node, "Int32Example", &executor, Int32Callback, INT);                                 // Initialise Int32 Subscriber
+  sub_bool.init(&node, "BooleanExample", &executor, BooleanCallback, BOOL);                           // Initialise Boolean Subscriber
+  sub_double.init(&node, "DoubleExample", &executor, DoubleCallback, DOUBLE);                         // Initialise Double Subscriber
+  sub_INTarr.init(&node, "Int32ArrayExample", &executor, Int32ArrayCallback, INT32_ARRAY);            // Initialise Int32 Array Subscriber
+  sub_DBarr.init(&node, "Float64ArrayExample", &executor, Float64ArrayCallback, FLOAT64_ARRAY);       // Initialise Float64 Array Subscriber
 
   return true;
 }
@@ -194,13 +201,15 @@ void DestroyEntities() {
     pub_int.destroy(&node);                                     // Destroy Int32 Publisher
     pub_bool.destroy(&node);                                    // Destroy Boolean Publisher
     pub_double.destroy(&node);                                  // Destroy Double Publisher
-    pub_arr.destroy(&node);                                     // Destroy Int32 Array Publisher
+    pub_INTarr.destroy(&node);                                  // Destroy Int32 Array Publisher
+    pub_DBarr.destroy(&node);                                   // Destroy Float64 Array Publisher
     pub_str.destroy(&node);                                     // Destroy String Publisher
 
     sub_int.destroy(&node);                                     // Destroy Int32 Subscriber
     sub_bool.destroy(&node);                                    // Destroy Boolean Subscriber
     sub_double.destroy(&node);                                  // Destroy Double Subscriber
-    sub_arr.destroy(&node);                                     // Destroy Int32 Array Subscriber
+    sub_INTarr.destroy(&node);                                  // Destroy Int32 Array Subscriber
+    sub_DBarr.destroy(&node);                                   // Destroy Float64 Array Subscriber
 
     rclc_executor_fini(&executor);                              // Destroy Executors
     RCCHECK(rcl_node_fini(&node));                              // Destroy Node
@@ -252,12 +261,34 @@ void DoubleCallback(const void * msgin) {
 // Example Callback funtion for Int32 Array values
 void Int32ArrayCallback(const void * msgin) {
 
-    const std_msgs__msg__Int32MultiArray * msgArr = (const std_msgs__msg__Int32MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
+    const std_msgs__msg__Int32MultiArray * IntArrmsg = (const std_msgs__msg__Int32MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
 
     // Access the data array
-    size_t size = msgArr->data.size;
+    size_t size = IntArrmsg->data.size;
     
-    const int32_t * array_data = msgArr->data.data;
+    const int32_t * array_data = IntArrmsg->data.data;
+
+    Serial.print("Array size: ");
+    Serial.println(size);
+    for(size_t i = 0; i < size; i++)
+    {
+        Serial.print("Element ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(array_data[i]);
+    }
+
+}
+
+// Example Callback funtion for Int32 Array values
+void Float64ArrayCallback(const void * msgin) {
+
+    const std_msgs__msg__Float64MultiArray * DoubleArrmsg = (const std_msgs__msg__Float64MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
+
+    // Access the data array
+    size_t size = DoubleArrmsg->data.size;
+    
+    const double * array_data = DoubleArrmsg->data.data;
 
     Serial.print("Array size: ");
     Serial.println(size);
