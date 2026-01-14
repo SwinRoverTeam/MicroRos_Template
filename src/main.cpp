@@ -8,7 +8,6 @@
 #include "Subscriber/genSubscriber.h"                   // Include this library to use the Subscriber
 #include <MicroROS_Transport.h>                         // IMPORTANT: MAKE SURE TO INCLUDE FOR CONNECTION BETWEEN THE ESP AND THE MICRO ROS AGENT TO WORK
 
-
 // Define W5500 Ethernet Chip Pins
 // Use constexpr instead of #define, more useful for modern C++ at compile time
 constexpr int W5500_CS = 14;                            // CS (Chip Select) PIN
@@ -32,15 +31,13 @@ void HandleConnectionState();
 bool CreateEntities();
 void DestroyEntities();
 
-constexpr void RCCHECK(fn) {
-  rcl_ret_t temp_rc = fn;
-
-  if (temp_rc != RCL_RET_OK) {
+constexpr void RCCHECK(rcl_ret_t fn) {
+  if (fn != RCL_RET_OK) {
     error_loop();
   }
 }
 
-constexpr size_t array_len(arr) {
+constexpr size_t array_len(auto arr) {
   if (arr[0]) {
     return sizeof(arr) / sizeof(arr[0]);
   } else {
@@ -62,7 +59,6 @@ rmw_context_t* rmw_context;
 // Define Node Name
 const char* node_name = "nodeExample";
 
-
 // Define MicroROS Subscriber and Publisher entities
 genPublisher pub_int;                                   // Int32 Publisher
 genPublisher pub_double;                                // Double Publisher
@@ -82,14 +78,12 @@ genSubscriber sub_DBarr;                                // Float64 (double) Arra
 int INTarr[] = {1, 2, 3, 4, 5};
 double DBarr[] = {1.0, 1.5, 2.0, 2.5, 3.0};
 
-
 // Define Callback functions for the Subscribers
 void BooleanCallback(const void* msgin);
 void Int32Callback(const void* msgin);
 void DoubleCallback(const void* msgin);
 void Int32ArrayCallback(const void* msgin);
 void Float64ArrayCallback(const void* msgin);
-
 
 // Connection status for the HandleConnection()
 enum class ConnectionState {
@@ -101,7 +95,6 @@ enum class ConnectionState {
 };
 
 ConnectionState connection_state = ConnectionState::Initializing;
-
 
 // Include the code for startinh up the ethernet chip and initialising the Micro ROS transport
 void setup() {
@@ -280,12 +273,12 @@ void DoubleCallback(const void * msgin) {
 // Example Callback funtion for Int32 Array values
 void Int32ArrayCallback(const void * msgin) {
 
-    const std_msgs__msg__Int32MultiArray * IntArrmsg = (const std_msgs__msg__Int32MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
+    const std_msgs__msg__Int32MultiArray* IntArrmsg = (const std_msgs__msg__Int32MultiArray *)msgin;              // IMPORTANT: DO NOT FORGET TO ADD THIS !!!
 
     // Access the data array
     size_t size = IntArrmsg->data.size;
     
-    const int32_t * array_data = IntArrmsg->data.data;
+    const int32_t* array_data = IntArrmsg->data.data;
 
     Serial.print("Array size: ");
     Serial.println(size);
@@ -307,16 +300,14 @@ void Float64ArrayCallback(const void * msgin) {
     // Access the data array
     size_t size = DoubleArrmsg->data.size;
     
-    const double * array_data = DoubleArrmsg->data.data;
+    const double* array_data = DoubleArrmsg->data.data;
 
     Serial.print("Array size: ");
     Serial.println(size);
-    for(size_t i = 0; i < size; i++)
-    {
+    for (size_t i = 0; i < size; i++) {
         Serial.print("Element ");
         Serial.print(i);
         Serial.print(": ");
         Serial.println(array_data[i]);
     }
-
 }
