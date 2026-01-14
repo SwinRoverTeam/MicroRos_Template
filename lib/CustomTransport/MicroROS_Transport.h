@@ -1,6 +1,4 @@
-
-#ifndef SRT_MICRO_ROS_TRANSPORT
-#define SRT_MICRO_ROS_TRANSPORT
+#pragma once
 
 #include <Ethernet.h>
 #include <uxr/client/transport.h>

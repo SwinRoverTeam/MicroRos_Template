@@ -1,5 +1,4 @@
-#ifndef DATATYPE_H
-#define DATATYPE_H
+#pragma once
 
 enum DataType {
     INT,

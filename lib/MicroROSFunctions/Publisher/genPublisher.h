@@ -1,5 +1,4 @@
-#ifndef GEN_PUBLISHER_H
-#define GEN_PUBLISHER_H
+#pragma once
 
 #include <Arduino.h>
 #include <variant>

@@ -1,5 +1,4 @@
-#ifndef GEN_SUBSCRIBER_H
-#define GEN_SUBSCRIBER_H
+#pragma once
 
 #include <Arduino.h>
 #include <rcl/rcl.h>
