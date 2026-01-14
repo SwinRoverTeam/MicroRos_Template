@@ -55,6 +55,3 @@ static inline void set_microros_eth_transports(byte mac[], IPAddress client_ip, 
 		platformio_transport_read
 	);
 }
-
-
-#endif  // SRT_MICRO_ROS_TRANSPORT

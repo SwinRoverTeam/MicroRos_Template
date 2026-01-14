@@ -22,5 +22,3 @@ struct AnyValue {
     DataType type;
     DataMsg msg;
 };
-
-#endif // INT_PUBLISHER_H

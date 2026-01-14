@@ -39,5 +39,3 @@ private:
     const void* data;
 
 };
-
-#endif // GEN_PUBLISHER_H

@@ -8,13 +8,21 @@
 #include "Subscriber/genSubscriber.h"                   // Include this library to use the Subscriber
 #include <MicroROS_Transport.h>                         // IMPORTANT: MAKE SURE TO INCLUDE FOR CONNECTION BETWEEN THE ESP AND THE MICRO ROS AGENT TO WORK
 
+
+// Use constexpr instead of #define, more useful for modern C++ at compile time
+constexpr int W5500_CS = 14;                            // CS (Chip Select) PIN
+constexpr int W5500_RST = 9;                            // Reset PIN
+constexpr int W5500_INT = 10;                           // Interrupt PIN 
+constexpr int W5500_MISO = 12;                          // MISO PIN
+constexpr int W5500_MOSI = 11;                          // MOSI PIN
+constexpr int W5500_SCK = 13;                           // Serial Clock PIN
 // Define W5500 Ethernet Chip Pins
-#define W5500_CS    14    // CS (Chip Select) PIN
-#define W5500_RST   9     // Reset PIN
-#define W5500_INT   10    // Interrupt PIN 
-#define W5500_MISO  12    // MISO PIN
-#define W5500_MOSI  11    // MOSI PIN
-#define W5500_SCK   13    // Serial Clock PIN
+// #define W5500_CS    14    // CS (Chip Select) PIN
+// #define W5500_RST   9     // Reset PIN
+// #define W5500_INT   10    // Interrupt PIN 
+// #define W5500_MISO  12    // MISO PIN
+// #define W5500_MOSI  11    // MOSI PIN
+// #define W5500_SCK   13    // Serial Clock PIN
 
 // Network Configuration
 byte esp_mac[] = { 0xDE, 0xAD, 0xAF, 0x91, 0x3E, 0x69 };    // Mac address of ESP32 (Make sure its unique for each ESP32)

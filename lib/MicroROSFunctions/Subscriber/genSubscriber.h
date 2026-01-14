@@ -28,5 +28,3 @@ private:
     rclc_subscription_callback_t callback;
 
 };
-
-#endif // INT_SUBSCRIBER_H
