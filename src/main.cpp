@@ -9,6 +9,7 @@
 #include <MicroROS_Transport.h>                         // IMPORTANT: MAKE SURE TO INCLUDE FOR CONNECTION BETWEEN THE ESP AND THE MICRO ROS AGENT TO WORK
 
 
+// Define W5500 Ethernet Chip Pins
 // Use constexpr instead of #define, more useful for modern C++ at compile time
 constexpr int W5500_CS = 14;                            // CS (Chip Select) PIN
 constexpr int W5500_RST = 9;                            // Reset PIN
@@ -16,13 +17,6 @@ constexpr int W5500_INT = 10;                           // Interrupt PIN
 constexpr int W5500_MISO = 12;                          // MISO PIN
 constexpr int W5500_MOSI = 11;                          // MOSI PIN
 constexpr int W5500_SCK = 13;                           // Serial Clock PIN
-// Define W5500 Ethernet Chip Pins
-// #define W5500_CS    14    // CS (Chip Select) PIN
-// #define W5500_RST   9     // Reset PIN
-// #define W5500_INT   10    // Interrupt PIN 
-// #define W5500_MISO  12    // MISO PIN
-// #define W5500_MOSI  11    // MOSI PIN
-// #define W5500_SCK   13    // Serial Clock PIN
 
 // Network Configuration
 byte esp_mac[] = { 0xDE, 0xAD, 0xAF, 0x91, 0x3E, 0x69 };    // Mac address of ESP32 (Make sure its unique for each ESP32)
@@ -37,9 +31,26 @@ void error_loop();
 void HandleConnectionState();
 bool CreateEntities();
 void DestroyEntities();
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}     // Checks for Errors in Micro ROS Setup
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}              // Checks for Errors in Micro ROS Setup
-#define ARRAY_LEN(arr) { (sizeof(arr) / sizeof(arr[0])) }                                     // Calculate the Array Length (Needed for the Int32 Array Publisher)
+
+constexpr void RCCHECK(fn) {
+  rcl_ret_t temp_rc = fn;
+
+  if (temp_rc != RCL_RET_OK) {
+    error_loop();
+  }
+}
+
+constexpr size_t array_len(arr) {
+  if (arr[0]) {
+    return sizeof(arr) / sizeof(arr[0]);
+  } else {
+    return 0;
+  }
+}
+
+// #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}     // Checks for Errors in Micro ROS Setup
+// #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}              // Checks for Errors in Micro ROS Setup
+// #define ARRAY_LEN(arr) { (sizeof(arr) / sizeof(arr[0])) }                                     // Calculate the Array Length (Needed for the Int32 Array Publisher)
 
 // Define shared ROS entities
 rcl_allocator_t allocator;
@@ -49,7 +60,7 @@ rcl_node_t node;
 rmw_context_t* rmw_context;
 
 // Define Node Name
-const char * node_name = "nodeExample";
+const char* node_name = "nodeExample";
 
 
 // Define MicroROS Subscriber and Publisher entities
@@ -73,11 +84,11 @@ double DBarr[] = {1.0, 1.5, 2.0, 2.5, 3.0};
 
 
 // Define Callback functions for the Subscribers
-void BooleanCallback(const void * msgin);
-void Int32Callback(const void * msgin);
-void DoubleCallback(const void * msgin);
-void Int32ArrayCallback(const void * msgin);
-void Float64ArrayCallback(const void * msgin);
+void BooleanCallback(const void* msgin);
+void Int32Callback(const void* msgin);
+void DoubleCallback(const void* msgin);
+void Int32ArrayCallback(const void* msgin);
+void Float64ArrayCallback(const void* msgin);
 
 
 // Connection status for the HandleConnection()
