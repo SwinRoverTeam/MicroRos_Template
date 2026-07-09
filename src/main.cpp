@@ -31,18 +31,20 @@ void HandleConnectionState();
 bool CreateEntities();
 void DestroyEntities();
 
-constexpr void RCCHECK(rcl_ret_t fn) {
+constexpr void rccheck(rcl_ret_t fn) {
   if (fn != RCL_RET_OK) {
     error_loop();
   }
 }
 
 constexpr size_t array_len(auto arr) {
-  if (arr[0]) {
-    return sizeof(arr) / sizeof(arr[0]);
-  } else {
-    return 0;
-  }
+  return sizeof(arr) / sizeof(arr[0]);
+  
+  // if (arr[0]) {
+  //   return sizeof(arr) / sizeof(arr[0]);
+  // } else {
+  //   return 0;
+  // }
 }
 
 // #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}     // Checks for Errors in Micro ROS Setup
@@ -150,15 +152,18 @@ void HandleConnectionState() {
         Serial.println("[ROS] Agent disconnected!");
         connection_state = ConnectionState::Disconnected;
       } else {
-        Serial.println("heartbeat");                                                      // Use it for testing if the code is working
+        // Serial.println("heartbeat");                                                      // Use it for testing if the code is working
         
       // ADD HERE FOR PUBLISHING VALUES CONTINUOUSLY
-        pub_int.publish(8);
-        pub_bool.publish(true);
-        pub_double.publish(0.69);
-        pub_INTarr.publish(INTarr, ARRAY_LEN(INTarr));                                          // Note: ARRAY LENGTH MUST BE ADD FOR THE INT32 ARRAY PUBLISH FUNCTION TO WORK
-        pub_DBarr.publish(DBarr, ARRAY_LEN(DBarr));                                             // Note: ARRAY LENGTH MUST BE ADD FOR THE FLOAT64 ARRAY PUBLISH FUNCTION TO WORK
-        pub_str.publish("Hello world");
+        // pub_int.publish(8);
+        // pub_bool.publish(true);
+        // pub_double.publish(0.69);
+        // pub_INTarr.publish(INTarr, array_len(INTarr));                                          // Note: ARRAY LENGTH MUST BE ADD FOR THE INT32 ARRAY PUBLISH FUNCTION TO WORK
+        // pub_DBarr.publish(DBarr, array_len(DBarr));                                             // Note: ARRAY LENGTH MUST BE ADD FOR THE FLOAT64 ARRAY PUBLISH FUNCTION TO WORK
+        // pub_str.publish("Hello world");
+
+        Serial.println(array_len(INTarr));
+        Serial.println(array_len(DBarr));
 
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));                                  // Spins the executor (Important for Subscribers)
       }
@@ -179,11 +184,11 @@ void HandleConnectionState() {
 bool CreateEntities() {
 
   allocator = rcl_get_default_allocator();
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+  rccheck(rclc_support_init(&support, 0, NULL, &allocator));
 
   // Create node object
-  RCCHECK(rclc_node_init_default(&node, node_name, "", &support));
-  RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscribers the executor handles is hard coded atm
+  rccheck(rclc_node_init_default(&node, node_name, "", &support));
+  rccheck(rclc_executor_init(&executor, &support.context, 10, &allocator)); // number of subscribers the executor handles is hard coded atm
   
   // ADD ALL YOUR PUBLISHERS AND SUBSCRIBER INITIALISATION HERE
   pub_int.init(&node, "Int32Example", INT);                                                           // Initialise Int32 Publisher
@@ -224,7 +229,7 @@ void DestroyEntities() {
     sub_DBarr.destroy(&node);                                   // Destroy Float64 Array Subscriber
 
     rclc_executor_fini(&executor);                              // Destroy Executors
-    RCCHECK(rcl_node_fini(&node));                              // Destroy Node
+    rccheck(rcl_node_fini(&node));                              // Destroy Node
     rclc_support_fini(&support);                                // Destroy Support
 }
 
@@ -302,12 +307,12 @@ void Float64ArrayCallback(const void * msgin) {
     
     const double* array_data = DoubleArrmsg->data.data;
 
-    Serial.print("Array size: ");
-    Serial.println(size);
-    for (size_t i = 0; i < size; i++) {
-        Serial.print("Element ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(array_data[i]);
-    }
+    // Serial.print("Array size: ");
+    // Serial.println(size);
+    // for (size_t i = 0; i < size; i++) {
+    //     Serial.print("Element ");
+    //     Serial.print(i);
+    //     Serial.print(": ");
+    //     Serial.println(array_data[i]);
+    // }
 }

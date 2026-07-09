@@ -26,8 +26,8 @@ public:
     void publish(bool data);
     void publish(double data);
     void publish(const char* text);
-    void publish(int32_t arr[], int INTArrLen);
-    void publish(double arr[], int DBArrLen);
+    void publish(int32_t arr[], size_t INTArrLen);
+    void publish(double arr[], size_t DBArrLen);
 
 
     void destroy(rcl_node_t * node);

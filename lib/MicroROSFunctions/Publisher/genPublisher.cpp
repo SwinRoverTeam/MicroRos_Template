@@ -144,7 +144,7 @@ void genPublisher::publish(const char* text) {
 }
 
 
-void genPublisher::publish(int32_t arr[], int INTArrLen) {
+void genPublisher::publish(int32_t arr[], size_t INTArrLen) {
     if (data_type == INT32_ARRAY) {
         std_msgs__msg__Int32MultiArray IntArr;
 
@@ -167,7 +167,7 @@ void genPublisher::publish(int32_t arr[], int INTArrLen) {
     }
 }
 
-void genPublisher::publish(double arr[], int DBArrLen) {
+void genPublisher::publish(double arr[], size_t DBArrLen) {
     if (data_type == FLOAT64_ARRAY) {
         std_msgs__msg__Float64MultiArray DoubleArr;
 
